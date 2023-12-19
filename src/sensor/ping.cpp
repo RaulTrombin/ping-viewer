@@ -35,6 +35,8 @@ Ping::Ping()
     : PingSensor(PingDeviceType::PING1D)
     , _points(_num_points, 0)
 {
+    _flasher = new Flasher(nullptr);
+
     setName("Ping1D");
     setControlPanel({"qrc:/Ping1DControlPanel.qml"});
     setSensorVisualizer({"qrc:/Ping1DVisualizer.qml"});
