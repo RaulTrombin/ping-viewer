@@ -61,6 +61,10 @@ Ping::Ping()
         }
         emit lostMessagesChanged();
 
+        if (!_commonVariables.deviceInformation.initialized) {
+            request(CommonId::DEVICE_INFORMATION);
+        }
+
         request(Ping1dId::PCB_TEMPERATURE);
         request(Ping1dId::PROCESSOR_TEMPERATURE);
         request(Ping1dId::VOLTAGE_5);
@@ -74,13 +78,14 @@ Ping::Ping()
     // Wait for device id to load the correct settings
     connect(this, &Ping::srcIdChanged, this, &Ping::setLastPingConfiguration);
 
-    connect(this, &Ping::firmwareVersionMinorChanged, this, [this] {
+    connect(this, &Ping::deviceRevisionChanged, this, [this] {
         // Wait for firmware information to be available before looking for new versions
         static bool once = false;
         if (!once) {
             once = true;
+            QString sensorName = _commonVariables.deviceInformation.device_revision == 2 ? "ping2" : "ping1d";
             NetworkTool::self()->checkNewFirmware(
-                "ping1d", std::bind(&Ping::checkNewFirmwareInGitHubPayload, this, std::placeholders::_1));
+                sensorName, std::bind(&Ping::checkNewFirmwareInGitHubPayload, this, std::placeholders::_1));
         }
     });
 }
@@ -97,7 +102,7 @@ void Ping::startPreConfigurationProcess()
     request(Ping1dId::PING_ENABLE);
     request(Ping1dId::MODE_AUTO);
     request(Ping1dId::PROFILE);
-    request(Ping1dId::FIRMWARE_VERSION);
+    request(CommonId::DEVICE_INFORMATION); // We should use this over Ping1dId::FIRMWARE_VERSION
     request(Ping1dId::DEVICE_ID);
     request(Ping1dId::SPEED_OF_SOUND);
 
@@ -505,9 +510,13 @@ void Ping::checkNewFirmwareInGitHubPayload(const QJsonDocument& jsonDocument)
     for (const QJsonValue& filePayload : filesPayload) {
         qCDebug(PING_PROTOCOL_PING) << filePayload["name"].toString();
 
-        // Get version from Ping[_|-]V(major).(patch)*.hex where (major).(patch) is <version>
-        static const QRegularExpression versionRegex(QStringLiteral(R"(Ping[_|-]V(?<version>\d+\.\d+).*\.hex)"));
+        // Get version from Ping(\d|)[_|-]V(major).(patch)*.hex where (major).(patch) is <version>
+        static const QRegularExpression versionRegex(QStringLiteral(R"(Ping(\d|)[_|-]V(?<version>\d+\.\d+).*\.hex)"));
         auto filePayloadVersion = versionRegex.match(filePayload["name"].toString()).captured("version").toFloat();
+        if (filePayloadVersion <= 0) {
+            qCWarning(PING_PROTOCOL_PING) << "Invalid version:" << filePayload["name"].toString();
+            continue;
+        }
         _firmwares[filePayload["name"].toString()] = filePayload["download_url"].toString();
 
         if (filePayloadVersion > lastVersionAvailable) {

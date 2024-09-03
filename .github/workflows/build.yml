@@ -6,9 +6,10 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
-        - os: macos-latest
+        - os: macos-latest-large
           DEPLOY_PATH: pingviewer-Release.dmg
         - os: ubuntu-latest
           DEPLOY_PATH: pingviewer-Release.AppImage
@@ -20,7 +21,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v4
       with:
         version: '5.15.1'
         target: 'desktop'
