@@ -289,8 +289,7 @@ bool ProtocolDetector::checkBuffer(const QByteArray& buffer, LinkConfiguration& 
             // Print information from detected devices
             common_device_information device_information(_parser.rxMessage());
             qCDebug(PING_PROTOCOL_PROTOCOLDETECTOR)
-                << "Detect new device:"
-                << "\ndevice_type:" << device_information.device_type()
+                << "Detect new device:" << "\ndevice_type:" << device_information.device_type()
                 << "\ndevice_revision:" << device_information.device_revision()
                 << "\nfirmware_version_major:" << device_information.firmware_version_major()
                 << "\nfirmware_version_minor:" << device_information.firmware_version_minor()
